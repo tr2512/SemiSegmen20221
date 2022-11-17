@@ -4,7 +4,7 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 
-_C.OUTPUT_DIR = "logs/train_fully"
+_C.OUTPUT_DIR = "./SemiSegmen20221/logs/train_fully"
 _C.MODEL = CN()
 _C.MODEL.NAME = "deeplabv3+_resnet50"
 _C.MODEL.NUM_CLASSES = 21
