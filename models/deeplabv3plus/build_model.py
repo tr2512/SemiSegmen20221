@@ -2,18 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F 
 
-from backbone import resnet50 
-from aspp import ASPP, BasicBlock
+from .backbone import resnet50 
+from .aspp import ASPP, BasicBlock
 
 class DeeplabV3plus(nn.Module):
 
-    def __init__(self, feat_channels=2048, out_channels=256, low_channels=256, atrous=[6, 12, 18], num_classes=21):
+    def __init__(self, atrous=[6, 12, 18], num_classes=21):
         super(DeeplabV3plus, self).__init__()
         self.backbone = resnet50([7])
-        self.aspp = ASPP(feat_channels, out_channels, atrous)
-        self.lowconv = BasicBlock(in_channels=low_channels, out_channels=48, kernel_size=1,
+        self.aspp = ASPP(2048, 256, atrous)
+        self.lowconv = BasicBlock(in_channels=256, out_channels=48, kernel_size=1,
                                  stride=1, padding=0, dilation=1, bias=True)
-        self.middle1 = BasicBlock(in_channels=out_channels + 48, out_channels=256, kernel_size=3,
+        self.middle1 = BasicBlock(in_channels=304, out_channels=256, kernel_size=3,
                                   stride=1, padding=1, dilation=1, bias=True)
         self.middle2 = BasicBlock(in_channels=256, out_channels=256, kernel_size=3,
                                   stride=1, padding=1, dilation=1, bias=True)
