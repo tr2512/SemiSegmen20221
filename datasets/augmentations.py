@@ -38,7 +38,7 @@ class RandomCrop(object):
         h = (self.size[0] - img.size()[-2]) // 2
         w = (self.size[1] - img.size()[-1]) // 2
         if len(img.size()) == 2:
-            padded = torch.ones(self.size) * pad_value
+            padded = torch.ones(self.size, dtype=torch.int64) * pad_value
             padded[h:h + img.size()[0], w:w + img.size()[1]] = img
         else:
             padded = torch.ones((img.size()[0], self.size[0], self.size[1])) * pad_value
