@@ -148,7 +148,7 @@ def train(cfg, logger):
                 logger.info("Best iou so far: " + str(best_iou))
             if iteration == stop_iter:
                 break
-        return model 
+    return model 
 
 if __name__ == "__main__":
     cfg = combine_cfg()
