@@ -29,7 +29,8 @@ class VOCDataset(torch.utils.data.Dataset):
         img_name = self.img_list[idx]
         img = np.array(Image.open(os.path.join(self.img_dir, img_name)), dtype=np.float32)
         lbl = np.array(Image.open(os.path.join(self.lbl_dir, img_name[:-3] + "png")), dtype=np.int_)
-        img, lbl = self.transform(img, lbl)
+        if self.transform:
+            img, lbl = self.transform(img, lbl)
         return img, lbl
 
     def decode_segmap(self, lbl):

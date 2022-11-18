@@ -66,7 +66,7 @@ class ToTensor(object):
         pass 
     
     def __call__(self, img, lbl):
-        return torch.from_numpy(img / 255), torch.from_numpy(lbl) 
+        return torch.from_numpy(img / 255).permute(2, 0, 1), torch.from_numpy(lbl) 
 
 
 class RandomScale(object):

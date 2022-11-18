@@ -20,7 +20,7 @@ def combine_cfg(config_dir=None):
 
 def train(cfg, logger):
     best_iou = 0
-    logger.info("Start training")
+    logger.info("Begin the training process")
 
     device = torch.device(cfg.MODEL.DEVICE)
 
