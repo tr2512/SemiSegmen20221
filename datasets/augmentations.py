@@ -76,7 +76,7 @@ class RandomScale(object):
 
     def __call__(self, img, lbl):
         scale = random.sample(self.scales, 1)[0]
-        h, w = int(img.size()[0] * scale), int(img.size()[1] * scale)
+        h, w = int(img.size()[1] * scale), int(img.size()[2] * scale)
         img = TF.resize(img, (h, w), interpolation=InterpolationMode.BILINEAR)
         lbl = torch.squeeze(TF.resize(torch.unsqueeze(lbl, 0), (h, w), interpolation=InterpolationMode.NEAREST))
         return img, lbl
@@ -89,4 +89,3 @@ class Normalization(object):
 
     def __call__(self, img, lbl):
         return (img - 0.5) / 0.5, lbl
-
