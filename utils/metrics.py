@@ -20,4 +20,4 @@ def OverallAcc(output, target, ignore_index=255):
     mask = (target != ignore_index)
     output = output[mask]
     target = target[mask]
-    return ((output == target).sum() / torch.numel(output)).item()
+    return (output == target).sum().item(), torch.numel(output)

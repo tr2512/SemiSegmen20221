@@ -100,22 +100,32 @@ def train(cfg, logger):
             if iteration % 1000 == 0:
                 logger.info("Validation mode")
                 model.eval()
+                intersections = torch.zeros(21).to(device)
+                unions = torch.zeros(21).to(device)
+                rights = 0
+                totals = 0
                 for imgs, lbls in val_loader:
-                    imgs.to(device)
-                    lbls.to(device)
+
+                    imgs = imgs.to(device)
+                    lbls = lbls.to(device)
 
                     with torch.no_grad():
                         preds = model(imgs)
-                        intersections, unions = IoU(preds, labels, 21)
-                        ious = intersections / unions
-                        mean_iou = torch.mean(ious).item()
-                        acc = OverallAcc(preds, lables, 21)
+                        preds = preds.argmax(dim=1)
+                        intersection, union = IoU(preds, lbls, 21)
+                        intersections += intersection
+                        unions += union
+                        right, total = OverallAcc(preds, lbls, 21)
+                        rights += right
+                        totals += total
 
-                        results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) 
-                        + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
-                        for i, iou in enumerate(ious):
-                            results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
-                        results = results[:-2]
+                ious = intersections / unions
+                mean_iou = torch.mean(ious).item()
+                acc = rights / totals
+                results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+                for i, iou in enumerate(ious):
+                    results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
+                results = results[:-2]
                 logger.info(results)
                 torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
