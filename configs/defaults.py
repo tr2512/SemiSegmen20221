@@ -25,13 +25,14 @@ _C.DATASETS.VAL_IMGDIR = "pascal_voc/val/image"
 _C.DATASETS.VAL_LBLDIR = "pascal_voc/val/label"
 _C.DATASETS.LABEL_LIST = "pascal_voc/subset_train_aug/train_aug_labeled_1-8.txt"
 _C.DATASETS.UNLABELLED_LIST = "pascal_voc/subset_train_aug/train_aug_unlabeled_1-8.txt"
+_C.DATASETS.TRAIN_LIST = ""
 
 _C.SOLVER = CN()
-_C.SOLVER.MAX_ITER = 32000
-_C.SOLVER.STOP_ITER = 20000
+_C.SOLVER.MAX_ITER = 40000
+_C.SOLVER.STOP_ITER = 40000
 
 _C.SOLVER.LR_METHOD = "poly"
-_C.SOLVER.LR = 0.007
+_C.SOLVER.LR = 0.005
 _C.SOLVER.POWER = 0.9
 
 _C.SOLVER.MOMENTUM = 0.9

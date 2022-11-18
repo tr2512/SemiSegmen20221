@@ -17,6 +17,12 @@ def combine_cfg(config_dir=None):
         cfg_base.merge_from_file(config_dir)
     return cfg_base 
 
+def read_file(directory):
+    l = []
+    with open(directory, "r") as f:
+        for line in f.readlines():
+            l.append(line[:-2] + ".jpg")
+    return l
 
 def train(cfg, logger):
     best_iou = 0
@@ -39,8 +45,12 @@ def train(cfg, logger):
         os.mkdir(output_dir)
 
     iteration = 0
+    img_list = None
+    if cfg.DATASETS.TRAIN_LIST:
+        img_list = read_file(cfg.DATASETS.TRAIN_LIST)
 
     train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
+                            img_list=img_list
                             transformation=Compose([
                             ToTensor(), 
                             Normalization(), 
@@ -135,6 +145,7 @@ def train(cfg, logger):
                     torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
                             }, os.path.join(output_dir, "best_model.pkl"))
+                logger.info("Best iou so far: " + str(best_iou))
             if iteration == stop_iter:
                 break
         return model 
