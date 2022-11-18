@@ -48,7 +48,7 @@ def train(cfg, logger):
                             RandomCrop(cfg.INPUT.CROP_SIZE), 
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
     val_data = VOCDataset(cfg.DATASETS.VAL_IMGDIR, cfg.DATASETS.VAL_LBLDIR, transformation=
-                         Compose([ToTensor(), Normalization()]))
+                         Compose([ToTensor(), Normalization(), RandomCrop(cfg.INPUT.CROP_SIZE)]))
 
     train_loader = torch.utils.data.DataLoader(
         train_data,
