@@ -78,7 +78,6 @@ class RandomScale(object):
         scale = random.sample(self.scales, 1)[0]
         h, w = int(img.size()[0] * scale), int(img.size()[1] * scale)
         img = TF.resize(img, (h, w), interpolation=InterpolationMode.BILINEAR)
-        print(lbl.shape)
         lbl = torch.squeeze(TF.resize(torch.unsqueeze(lbl, 0), (h, w), interpolation=InterpolationMode.NEAREST))
         return img, lbl
 
