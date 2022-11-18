@@ -50,7 +50,7 @@ def train(cfg, logger):
         img_list = read_file(cfg.DATASETS.TRAIN_LIST)
 
     train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
-                            img_list=img_list
+                            img_list=img_list,
                             transformation=Compose([
                             ToTensor(), 
                             Normalization(), 
