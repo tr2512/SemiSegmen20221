@@ -137,7 +137,7 @@ def train(cfg, logger):
                             }, os.path.join(output_dir, "best_model.pkl"))
             if iteration == stop_iter:
                 break
-        return model 
+    return model 
 
 if __name__ == "__main__":
     cfg = combine_cfg()
