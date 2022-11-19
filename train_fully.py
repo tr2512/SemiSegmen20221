@@ -60,6 +60,9 @@ def train(cfg, logger):
     val_data = VOCDataset(cfg.DATASETS.VAL_IMGDIR, cfg.DATASETS.VAL_LBLDIR, transformation=
                          Compose([ToTensor(), Normalization(), RandomCrop(cfg.INPUT.CROP_SIZE)]))
 
+    logger.info("Number of train images: " + str(len(train_data)))
+    logger.info("Number of validation images: " + str(len(val_data)))
+    
     train_loader = torch.utils.data.DataLoader(
         train_data,
         batch_size=cfg.SOLVER.BATCH_SIZE,
