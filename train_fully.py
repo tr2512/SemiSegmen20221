@@ -21,7 +21,7 @@ def read_file(directory):
     l = []
     with open(directory, "r") as f:
         for line in f.readlines():
-            l.append(line[:-2] + ".jpg")
+            l.append(line[:-1] + ".jpg")
     return l
 
 def train(cfg, logger):
