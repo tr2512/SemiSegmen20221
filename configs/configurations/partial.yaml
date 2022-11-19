@@ -1,0 +1,3 @@
+OUTPUT_DIR: "logs/baseline"
+DATASETS:
+  TRAIN_LIST: "pascal_voc/subset_train_aug/train_aug_labeled_1-8.txt"

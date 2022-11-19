@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import argparse
 import random
 import os
 import time
@@ -151,6 +151,10 @@ def train(cfg, logger):
     return model 
 
 if __name__ == "__main__":
-    cfg = combine_cfg()
+    parser = argparse.ArgumentParser(description="Pytorch training")
+    parser.add_argument("--config", default="")
+    args = parser.parse_args()
+    cfg = combine_cfg(args.config)
+    print(cfg.OUTPUT_DIR)
     logger = setup_logger("Fully supervised", cfg.OUTPUT_DIR, str(datetime.now()) + ".log")
     model = train(cfg, logger)
