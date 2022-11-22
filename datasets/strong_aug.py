@@ -90,7 +90,7 @@ class hsv():            # need fix
         pass
     def __call__(self, img, lbl) :
         hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-        return img,lbl
+        return hsv,lbl
 
 class invert_channel():
     def __init__(self) -> None:
