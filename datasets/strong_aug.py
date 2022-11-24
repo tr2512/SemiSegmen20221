@@ -278,4 +278,15 @@ class solarize():
             img = np.expand_dims(img, -1)
         return img, lbl
 
+import os
+class jpeg_compression():
+    def __init__(self, compression):
+        self.com = compression
+    def __call__(self, img, lbl) :
+        cv2.imwrite("img_CV2_90.jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), self.com])
+        img_com = cv2.imread("img_CV2_90.jpg")
+        try: 
+            os.remove("img_CV2_90.jpg")
+        except: pass
+        return img_com, lbl
 
