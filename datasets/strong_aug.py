@@ -255,6 +255,7 @@ class salt_pepper():
             # Color that pixel to black
             img[y_coord][x_coord] = 0
             lbl[y_coord, x_coord, :] = 255 
+        img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         return img,lbl
 
 class solarize():
