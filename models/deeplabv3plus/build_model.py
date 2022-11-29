@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F 
 
-from backbone import resnet50 
-from aspp import ASPP, BasicBlock
+from .backbone import resnet50 
+from .aspp import ASPP, BasicBlock
 
 class DeeplabV3plus(nn.Module):
 
