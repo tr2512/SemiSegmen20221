@@ -186,7 +186,7 @@ class Dropout():
         np.random.shuffle(nums)
         nums = nums.reshape(img.shape)
 
-        img_drop = np.multiply(img,nums).astype(int)
+        img_drop = np.multiply(img,nums).astype(np.uint8)
         lbl_drop = np.where(nums == 1,lbl, 255)
         return img_drop, lbl_drop
 
@@ -212,7 +212,7 @@ class Multiply():
     def __call__(self, img, lbl):
         random = np.random.uniform(self.low,self.high ,size = img.shape)
 
-        img_mul = np.multiply(img,random).astype(int)
+        img_mul = np.multiply(img,random).astype(np.uint8)
         return img_mul, lbl
 
 class salt_pepper():
@@ -273,7 +273,7 @@ class solarize():
         
         lut = [(i if i < self.thresh else max_val - i) for i in range(max_val + 1)]
         prev_shape = img.shape
-        img = cv2.LUT(img, np.array(lut))
+        img = cv2.LUT(img, np.array(lut)).astype(np.uint8)
 
         if len(prev_shape) != len(img.shape):
             img = np.expand_dims(img, -1)
