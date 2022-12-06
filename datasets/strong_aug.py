@@ -187,8 +187,8 @@ class Dropout():
         nums = nums.reshape(img.shape)
 
         img_drop = np.multiply(img,nums).astype(np.uint8)
-        lbl_drop = np.where(nums == 1,lbl, 255).astype(np.uint8)
-        return img_drop, lbl_drop
+        #lbl_drop = np.where(nums == 1,lbl, 255).astype(np.uint8)
+        return img_drop, lbl
 
 class Coarse_dropout():
     def __init__(self, box = (3,4), rate = 0.1):
