@@ -10,7 +10,7 @@ class contrast_gamma():
         table = np.array([((i / 255.0) ** invGamma) * 255
             for i in np.arange(0, 256)]).astype("uint8")
         # apply gamma correction using the lookup table
-        return cv2.LUT(img, table), lbl
+        return cv2.LUT(img.astype("uint8"), table), lbl
         
 class contrast_linear():
     def __init__(self, alpha = 3, beta = 0):
@@ -187,7 +187,7 @@ class Dropout():
         nums = nums.reshape(img.shape)
 
         img_drop = np.multiply(img,nums).astype(np.uint8)
-        lbl_drop = np.where(nums == 1,lbl, 255)
+        lbl_drop = np.where(nums == 1,lbl, 255).astype(np.uint8)
         return img_drop, lbl_drop
 
 class Coarse_dropout():
@@ -203,7 +203,7 @@ class Coarse_dropout():
         a,b = np.where(nums == 0)
         for i in range(a.shape[0]):
             img[a[i]: min(a[i]+ self.box[0] , img.shape[0]), b[i]: min(b[i] + self.box[1], img.shape[1]), :] = 0
-            lbl[a[i]: min(a[i]+ self.box[0] , img.shape[0]), b[i]: min(b[i] + self.box[1], img.shape[1]), :] = 255
+            lbl[a[i]: min(a[i]+ self.box[0] , img.shape[0]), b[i]: min(b[i] + self.box[1], img.shape[1])] = 255
         return img, lbl
 class Multiply():
     def __init__(self, low = 0, high = 1):
@@ -254,7 +254,7 @@ class salt_pepper():
             
             # Color that pixel to black
             img[y_coord][x_coord] = 0
-            lbl[y_coord, x_coord, :] = 255 
+            lbl[y_coord, x_coord] = 255 
         img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         return img,lbl
 
@@ -273,7 +273,7 @@ class solarize():
         
         lut = [(i if i < self.thresh else max_val - i) for i in range(max_val + 1)]
         prev_shape = img.shape
-        img = cv2.LUT(img, np.array(lut)).astype(np.uint8)
+        img = cv2.LUT(img.astype("uint8"), np.array(lut)).astype(np.uint8)
 
         if len(prev_shape) != len(img.shape):
             img = np.expand_dims(img, -1)
