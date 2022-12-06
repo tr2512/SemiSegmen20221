@@ -26,7 +26,7 @@ def read_file(directory):
     return l
 
 def consistency_loss(student, teacher):
-    return nn.MSELoss(student, teacher)
+    return nn.MSELoss()(student, teacher)
 
 def update_ema_variables(model, ema_model, alpha, global_step):
     # Use the true average until the exponential average is more correct
@@ -34,8 +34,15 @@ def update_ema_variables(model, ema_model, alpha, global_step):
     for ema_param, param in zip(ema_model.parameters(), model.parameters()):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
 
-def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir):
-    logger.info("Validation mode")
+def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir, teacher=False):
+    global student_best_iou, teacher_best_iou
+    if teacher:
+        model_name = 'Teacher'
+        best_iou = teacher_best_iou
+    else:
+        model_name = 'Student'
+        best_iou = student_best_iou
+
     model.eval()
     intersections = torch.zeros(21).to(device)
     unions = torch.zeros(21).to(device)
@@ -59,24 +66,25 @@ def eval_func(model, device, logger, optimizer, val_loader, iteration, output_di
     ious = intersections / unions
     mean_iou = torch.mean(ious).item()
     acc = rights / totals
-    results = "\n" + f"{model} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+    results = "\n" + f"{model_name} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
     for i, iou in enumerate(ious):
-        results += f"{model} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
+        results += f"{model_name} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
     results = results[:-2]
     logger.info(results)
-    torch.save({f"{model}_state_dict": model.state_dict(), 
-                "iteration": iteration,
-                }, os.path.join(output_dir, f"current_{model}.pkl"))
+    torch.save({f"{model_name}_state_dict": model.state_dict(), 
+                "iteration": iteration
+                }, os.path.join(output_dir, f"current_{model_name}.pkl"))
     if mean_iou > best_iou:
         best_iou = mean_iou
-        torch.save({f"{model}_state_dict": model.state_dict(), 
+        torch.save({f"{model_name}_state_dict": model.state_dict(), 
                 "iteration": iteration,
-                }, os.path.join(output_dir, f"best_{model}.pkl"))
-    logger.info(f"Best {model} iou so far: " + str(best_iou))
-
+                }, os.path.join(output_dir, f"best_{model_name}.pkl"))
+    logger.info(f"Best {model_name} iou so far: " + str(best_iou))
 
 def train(cfg, logger):
-    best_iou = 0
+    global student_best_iou, teacher_best_iou
+    student_best_iou, teacher_best_iou = 0, 0
+
     logger.info("Begin the training process")
     device = torch.device(cfg.MODEL.DEVICE)
 
@@ -94,7 +102,7 @@ def train(cfg, logger):
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    output_dir = cfg.OUTPUT_DIR
+    output_dir = 'logs/mean-teacher_train'
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
@@ -166,7 +174,7 @@ def train(cfg, logger):
             teacher_class_loss = criterion(teacher_preds, labels)
 
             cons_loss = consistency_loss(student_class_loss, teacher_class_loss)
-            logger.info("Iter [%d/%d] Consistency_loss: %f" % (interation,
+            logger.info("Iter [%d/%d] Consistency_loss: %f" % (iteration,
                         cfg.SOLVER.STOP_ITER, cons_loss))
 
             student_class_loss.backward()
@@ -182,11 +190,12 @@ def train(cfg, logger):
                 logger.info("Iter [%d/%d] Teacher_loss: %f Time/iter: %f" % (iteration, 
                             cfg.SOLVER.STOP_ITER, teacher_class_loss, data_time))
             #Evaluation
-            if iteration % 1000 == 0:
+            if iteration % 400 == 0:
+                logger.info("Validation mode")
                 eval_func(model=student, device=device, logger=logger, optimizer=optimizer,
                           val_loader=val_loader, iteration=iteration, output_dir=output_dir)
                 eval_func(model=teacher, device=device, logger=logger, optimizer=optimizer,
-                          val_loader=val_loader, iteration=iteration, output_dir=output_dir)
+                          val_loader=val_loader, iteration=iteration, output_dir=output_dir, teacher=True)
         
             if iteration == stop_iter:
                 break
@@ -197,8 +206,7 @@ def train(cfg, logger):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pytorch training")
     parser.add_argument("--config", default="")
-    args = parser.parse_args()
+    args = parser.parse_args([])
     cfg = combine_cfg(args.config)
-    print(cfg.OUTPUT_DIR)
-    logger = setup_logger("Mean-teacher semi-supervised", cfg.OUTPUT_DIR, str(datetime.now()) + ".log")
+    logger = setup_logger("Mean-teacher semi-supervised", 'logs/mean-teacher_train', str(datetime.now()) + ".log")
     teacher_model = train(cfg, logger)
