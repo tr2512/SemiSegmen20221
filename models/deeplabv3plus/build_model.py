@@ -17,6 +17,8 @@ class DeeplabV3plus(nn.Module):
                                   stride=1, padding=1, dilation=1, bias=True)
         self.middle2 = BasicBlock(in_channels=256, out_channels=256, kernel_size=3,
                                   stride=1, padding=1, dilation=1, bias=True)
+        self.dropout1 = nn.Dropout(p=0.5)
+        self.dropout2 = nn.Dropout(p=0.5)
         self.cls = nn.Conv2d(in_channels=256, out_channels=num_classes, kernel_size=1,
                                     stride=1, padding=0, dilation=1, bias=True)
     
@@ -28,7 +30,9 @@ class DeeplabV3plus(nn.Module):
         low_fea = self.lowconv(low_fea)
         logit_map = F.interpolate(logit_map, scale_factor=4, mode="bilinear", align_corners=True)
         mid_fea = torch.concat([low_fea, logit_map], axis=1)
+        mid_fea = self.dropout1(mid_fea)
         mid_fea = self.middle1(mid_fea)
+        mid_fea = self.dropout2(mid_fea)
         mid_fea = self.middle2(mid_fea)
         final_fea = F.interpolate(mid_fea, scale_factor=4, mode="bilinear", align_corners=True)
         final_logit = self.cls(final_fea)
