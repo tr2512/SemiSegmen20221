@@ -11,13 +11,6 @@ import os
 import time
 from datetime import datetime
 
-
-def combine_cfg(config_dir=None):
-    cfg_base = cfg.clone()
-    if config_dir:
-        cfg_base.merge_from_file(config_dir)
-    return cfg_base 
-        
 def read_file(directory):
     l = []
     with open(directory, "r") as f:
@@ -34,15 +27,8 @@ def update_ema_variables(model, ema_model, alpha, global_step):
     for ema_param, param in zip(ema_model.parameters(), model.parameters()):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
 
-def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir, teacher=False):
-    global student_best_iou, teacher_best_iou
-    if teacher:
-        model_name = 'Teacher'
-        best_iou = teacher_best_iou
-    else:
-        model_name = 'Student'
-        best_iou = student_best_iou
-
+def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir):
+    logger.info("Validation mode")
     model.eval()
     intersections = torch.zeros(21).to(device)
     unions = torch.zeros(21).to(device)
@@ -66,57 +52,46 @@ def eval_func(model, device, logger, optimizer, val_loader, iteration, output_di
     ious = intersections / unions
     mean_iou = torch.mean(ious).item()
     acc = rights / totals
-    results = "\n" + f"{model_name} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+    results = "\n" + f"{model} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
     for i, iou in enumerate(ious):
-        results += f"{model_name} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
+        results += f"{model} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
     results = results[:-2]
     logger.info(results)
-    torch.save({f"{model_name}_state_dict": model.state_dict(), 
-                "iteration": iteration
-                }, os.path.join(output_dir, f"current_{model_name}.pkl"))
+    torch.save({f"{model}_state_dict": model.state_dict(), 
+                "iteration": iteration,
+                }, os.path.join(output_dir, f"current_{model}.pkl"))
     if mean_iou > best_iou:
         best_iou = mean_iou
-        torch.save({f"{model_name}_state_dict": model.state_dict(), 
+        torch.save({f"{model}_state_dict": model.state_dict(), 
                 "iteration": iteration,
-                }, os.path.join(output_dir, f"best_{model_name}.pkl"))
-    logger.info(f"Best {model_name} iou so far: " + str(best_iou))
+                }, os.path.join(output_dir, f"best_{model}.pkl"))
+    logger.info(f"Best {model} iou so far: " + str(best_iou))
+
 
 def train(cfg, logger):
     global student_best_iou, teacher_best_iou
     student_best_iou, teacher_best_iou = 0, 0
 
-    logger.info("Begin the training process")
-    device = torch.device(cfg.MODEL.DEVICE)
-
-    #Create models
-    student = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
-    student.to(device)
-
-    teacher = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
-    for param in teacher.parameters():
-        param.detach_()
-    teacher.to(device)
-
-    #Create opitimizer
-    optimizer = torch.optim.SGD([p for p in student.parameters() if p.requires_grad], 
-    lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
-    optimizer.zero_grad()
-
-    output_dir = 'logs/mean-teacher_train'
+    output_dir = '/content/drive/MyDrive/Intro_DL/mean-teacher_train/check_points'
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
-    max_iter = cfg.SOLVER.MAX_ITER
-    stop_iter = cfg.SOLVER.STOP_ITER
-    iteration = 0
+    device = torch.device(cfg.MODEL.DEVICE)
 
     #Load datasets
-    img_list = None
-    if cfg.DATASETS.TRAIN_LIST:
-        img_list = read_file(cfg.DATASETS.TRAIN_LIST)
+    lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
+    ulbl_img_list = read_file(cfg.DATASETS.UNLABELLED_LIST)
 
-    train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
-                            img_list=img_list,
+    lbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
+                            img_list=lbl_img_list,
+                            transformation=Compose([
+                            ToTensor(), 
+                            Normalization(), 
+                            RandomScale(cfg.INPUT.MULTI_SCALES), 
+                            RandomCrop(cfg.INPUT.CROP_SIZE), 
+                            RandomFlip(cfg.INPUT.FLIP_PROB)]))
+    ulbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
+                            img_list=ulbl_img_list,
                             transformation=Compose([
                             ToTensor(), 
                             Normalization(), 
@@ -126,12 +101,17 @@ def train(cfg, logger):
     val_data = VOCDataset(cfg.DATASETS.VAL_IMGDIR, cfg.DATASETS.VAL_LBLDIR, transformation=
                          Compose([ToTensor(), Normalization(), RandomCrop(cfg.INPUT.CROP_SIZE)]))
     
-    logger.info("Number of train images: " + str(len(train_data)))
-    logger.info("Number of validation images: " + str(len(val_data)))
-    
-    train_loader = torch.utils.data.DataLoader(
-        train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE,
+    lbl_train_loader = torch.utils.data.DataLoader(
+        lbl_train_data,
+        batch_size=cfg.SOLVER.BATCH_SIZE//2,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
+        drop_last=True
+    )
+    ulbl_train_loader = torch.utils.data.DataLoader(
+        ulbl_train_data,
+        batch_size=cfg.SOLVER.BATCH_SIZE//2,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -146,8 +126,45 @@ def train(cfg, logger):
         drop_last=True
     )
 
+    #Create models
+    student = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
+    teacher = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
+
+    #Check for checkpoints
+    if os.path.exists(os.path.join(output_dir, "current_teacher.pkl")):
+        checkpoint = torch.load(os.path.join(output_dir, "current_teacher.pkl"))
+        teacher.load_state_dict(checkpoint['teacher_state_dict'])
+        teacher_best_iou = checkpoint['best_iou']
+
+        checkpoint = torch.load(os.path.join(output_dir, "current_student.pkl"))
+        student.load_state_dict(checkpoint['student_state_dict'])
+        student_best_iou = checkpoint['best_iou']
+
+        iteration = checkpoint['iteration']
+        logger.info("Continue training from last checkpoint")
+    else:
+        logger.info("Begin the training process")
+        iteration = 0
+
+        logger.info("Number of train images: " + str(len(lbl_train_data) + len(ulbl_train_data)))
+        logger.info("Number of validation images: " + str(len(val_data)))
+
+    #Load models to device
+    for param in teacher.parameters():
+        param.detach_()
+    student.to(device)
+    teacher.to(device)
+
+    #Create opitimizer
+    optimizer = torch.optim.SGD([p for p in student.parameters() if p.requires_grad], 
+    lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
+    optimizer.zero_grad()
+
+    max_iter = cfg.SOLVER.MAX_ITER
+    stop_iter = cfg.SOLVER.STOP_ITER
+
     criterion = nn.CrossEntropyLoss(ignore_index=255)
-    alpha = 0.5
+    alpha = 0.999
 
     #Start training
     logger.info("Start training")
@@ -155,7 +172,10 @@ def train(cfg, logger):
     student.train()
     end = time.time()
 
+    label = True
     while iteration < stop_iter:
+        train_loader = lbl_train_loader if label else ulbl_train_loader
+
         for i, (images, labels) in enumerate(train_loader):
             student.train()
             data_time = time.time() - end
@@ -170,21 +190,26 @@ def train(cfg, logger):
             student_preds = student(images)
             teacher_preds = teacher(images)
 
-            student_class_loss = criterion(student_preds, labels)
-            teacher_class_loss = criterion(teacher_preds, labels)
+            if label:
+                student_class_loss = criterion(student_preds, labels)
+                teacher_class_loss = criterion(teacher_preds, labels)
+            else:
+                student_class_loss = 0
 
-            cons_loss = consistency_loss(student_class_loss, teacher_class_loss)
+            cons_loss = consistency_loss(student_preds, teacher_preds)
             logger.info("Iter [%d/%d] Consistency_loss: %f" % (iteration,
                         cfg.SOLVER.STOP_ITER, cons_loss))
 
-            student_class_loss.backward()
+            loss = cons_loss + student_class_loss
+
+            loss.backward()
             optimizer.step()
 
             iteration += 1
 
             update_ema_variables(student, teacher, alpha, iteration)
 
-            if iteration % 20 == 0:
+            if iteration % 20 == 0 and label:
                 logger.info("Iter [%d/%d] Student_loss: %f Time/iter: %f" % (iteration, 
                             cfg.SOLVER.STOP_ITER, student_class_loss, data_time))
                 logger.info("Iter [%d/%d] Teacher_loss: %f Time/iter: %f" % (iteration, 
@@ -199,14 +224,12 @@ def train(cfg, logger):
         
             if iteration == stop_iter:
                 break
+            
+        label = not label
 
     return teacher
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pytorch training")
-    parser.add_argument("--config", default="")
-    args = parser.parse_args([])
-    cfg = combine_cfg(args.config)
-    logger = setup_logger("Mean-teacher semi-supervised", 'logs/mean-teacher_train', str(datetime.now()) + ".log")
+    logger = setup_logger("Mean-teacher semi-supervised", '/content/drive/MyDrive/Intro_DL/mean-teacher_train/logs', str(datetime.now()) + ".log")
     teacher_model = train(cfg, logger)
