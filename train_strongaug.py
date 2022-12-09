@@ -36,8 +36,8 @@ def train(cfg, logger, pretrain , output_dir):
     
     saved = torch.load(pretrain)
     teacher_model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
-    teacher_model = convert.convert_dsbn(teacher_model)
     teacher_model.load_state_dict(saved['model_state_dict'])
+    teacher_model = convert.convert_dsbn(teacher_model)
     teacher_model.to(device)
 
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
