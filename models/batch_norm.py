@@ -1,4 +1,5 @@
 import logging
+from configs import cfg
 import torch
 import torch.distributed as dist
 from torch import nn
@@ -6,7 +7,6 @@ from torch.autograd.function import Function
 
 import copy
 
-dsbn_size = None
 class DSBN(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
         super().__init__()
@@ -15,8 +15,8 @@ class DSBN(nn.Module):
 
     def forward(self, input):
         if self.training:
-            input0 = self.main_bn(input[:dsbn_size])
-            input1 = self.aux_bn(input[dsbn_size:])
+            input0 = self.main_bn(input[:cfg.INPUT.DSBN])
+            input1 = self.aux_bn(input[cfg.INPUT.DSBN:])
             input = torch.cat((input0, input1), 0)
         else:
             input = self.main_bn(input)

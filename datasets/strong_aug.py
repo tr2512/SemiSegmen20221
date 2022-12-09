@@ -78,7 +78,7 @@ class equalize():
         # 3. calculate CDF
         cdf = np.cumsum(hist)
         s_k = (255 * cdf - 0.5).astype("uint8")
-        equalized_img = cv2.LUT(img, s_k)
+        equalized_img = cv2.LUT(img.astype("uint8"), s_k)
         return equalized_img, lbl
 
 class hsv():            # need fix
@@ -291,3 +291,18 @@ class jpeg_compression():
         except: pass
         return img_com, lbl
 
+Transforms = [contrast_gamma(), contrast_linear(), 
+brightness(), brightness_channel(), equalize(), 
+hsv(), invert_channel(), blur(),noise_gau(), 
+noise_pos(), Channel_shuffle(), Dropout(),
+Coarse_dropout(), Multiply(), salt_pepper(), 
+solarize()]#, jpeg_compression(77)]
+def SDA(N=3):
+    """
+    Generate a set of distortions.
+    Args:
+    N: Num. of augment. transform. to apply
+    sequentially
+    """
+    sampled_ops = np.random.choice(Transforms, N)
+    return sampled_ops 
