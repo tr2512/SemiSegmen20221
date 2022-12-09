@@ -22,12 +22,9 @@ class contrast_linear():
         out[pixel] = alpha * image[pixel] + beta
         alpha is for contrast, beta is for brightness
         '''
-        output = np.zeros(img.shape, img.dtype)
-        h, w, ch = img.shape
-        for y in range(h):
-            for x in range(w):
-                for c in range(ch):
-                    output[y,x,c] = np.clip(self.a*img[y,x,c] + self.b, 0, 255)
+        output = img*self.a + self.b
+        output[output < 0] = 0
+        output[output > 255] = 255
 
         return output, lbl
 
@@ -49,10 +46,8 @@ class brightness_channel(contrast_linear):
         '''
         output = np.zeros(img.shape, img.dtype)
         h, w, ch = img.shape
-        for y in range(h):
-            for x in range(w):
-                for c in range(ch):
-                    output[y,x,c] = np.clip(self.a*img[y,x,c] + self.b*(c+1)/2 , 0, 255)
+        for c in range(ch):
+            output[:,:,c] = np.clip(self.a*img[:,:,c] + self.b*(c+1)/2 , 0, 255)
 
         return output, lbl
 

@@ -36,10 +36,12 @@ def train(cfg, logger, pretrain , output_dir):
     
     saved = torch.load(pretrain)
     teacher_model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
+    teacher_model = convert.convert_dsbn(teacher_model)
     teacher_model.load_state_dict(saved['model_state_dict'])
     teacher_model.to(device)
 
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
+    model = convert.convert_dsbn(model)
     model.to(device)
 
     max_iter = cfg.SOLVER.MAX_ITER
@@ -79,7 +81,7 @@ def train(cfg, logger, pretrain , output_dir):
     
     supervised_loader = torch.utils.data.DataLoader(
         lbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE//2,
+        batch_size=cfg.SOLVER.STRONG_AUG,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -87,7 +89,7 @@ def train(cfg, logger, pretrain , output_dir):
     )
     unsupervised_loader = torch.utils.data.DataLoader(
         ulbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE//2,
+        batch_size=cfg.SOLVER.STRONG_AUG,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -95,7 +97,7 @@ def train(cfg, logger, pretrain , output_dir):
     )
     val_loader = torch.utils.data.DataLoader(
         val_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE,
+        batch_size=cfg.SOLVER.STRONG_AUG,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
