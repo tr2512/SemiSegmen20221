@@ -130,9 +130,10 @@ def train(cfg, logger, pretrain , output_dir):
             images = torch.cat((images, u_imgs), dim = 0).to(device)
             preds = model(images)
 
-            preds_s , preds_u = torch.split(preds,2 , dim=0)
+            preds_s , preds_u = torch.split(preds,cfg.SOLVER.STRONG_AUG , dim=0)
 
             loss = criterion(preds_s, labels)
+            loss += u_criterion(preds_u, u_labels)
             loss.backward()
 
             optimizer.step()
