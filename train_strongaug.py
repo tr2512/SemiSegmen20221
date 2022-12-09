@@ -105,6 +105,7 @@ def train(cfg, logger, pretrain , output_dir):
     )
 
     criterion = nn.CrossEntropyLoss(ignore_index=255)
+    u_criterion = nn.CrossEntropyLoss()
 
     logger.info("Start training")
     model.train()
@@ -123,9 +124,15 @@ def train(cfg, logger, pretrain , output_dir):
             labels = labels.to(device)
             u_imgs = u_imgs.to(device)
 
+            with torch.no_grad():
+                u_labels = teacher_model(u_imgs)
+                u_labels = nn.Softmax(dim=1)(u_labels)
+            images = torch.cat((images, u_imgs), dim = 0).to(device)
             preds = model(images)
-            
-            loss = criterion(preds, labels)
+
+            preds_s , preds_u = torch.split(preds,2 , dim=0)
+
+            loss = criterion(preds_s, labels)
             loss.backward()
 
             optimizer.step()
