@@ -172,11 +172,8 @@ def train(cfg, logger):
     student.train()
     end = time.time()
 
-    label = True
     while iteration < stop_iter:
-        train_loader = lbl_train_loader if label else ulbl_train_loader
-
-        for i, (images, labels) in enumerate(train_loader):
+        for (images, labels), (u_imgs, _) in zip(lbl_train_loader, ulbl_train_loader):
             student.train()
             data_time = time.time() - end
             end = time.time()
@@ -184,21 +181,20 @@ def train(cfg, logger):
             optimizer.param_groups[0]['lr'] = cfg.SOLVER.LR * (1 - iteration/max_iter)**cfg.SOLVER.POWER
 
             optimizer.zero_grad()
+            images = torch.cat((images, u_imgs), 0)
             images = images.to(device)
             labels = labels.to(device)
 
             student_preds = student(images)
             teacher_preds = teacher(images)
-
-            if label:
-                student_class_loss = criterion(student_preds, labels)
-                teacher_class_loss = criterion(teacher_preds, labels)
-            else:
-                student_class_loss = 0
-
+            
             cons_loss = consistency_loss(student_preds, teacher_preds)
-            logger.info("Iter [%d/%d] Consistency_loss: %f" % (iteration,
-                        cfg.SOLVER.STOP_ITER, cons_loss))
+            
+            student_preds, _ = torch.split(student_preds, [4, 4])
+            teacher_preds, _ = torch.split(teacher_preds, [4, 4])
+
+            student_class_loss = criterion(student_preds, labels)
+            teacher_class_loss = criterion(teacher_preds, labels)
 
             loss = cons_loss + student_class_loss
 
@@ -209,11 +205,13 @@ def train(cfg, logger):
 
             update_ema_variables(student, teacher, alpha, iteration)
 
-            if iteration % 20 == 0 and label:
+            if iteration % 20 == 0:
                 logger.info("Iter [%d/%d] Student_loss: %f Time/iter: %f" % (iteration, 
                             cfg.SOLVER.STOP_ITER, student_class_loss, data_time))
                 logger.info("Iter [%d/%d] Teacher_loss: %f Time/iter: %f" % (iteration, 
                             cfg.SOLVER.STOP_ITER, teacher_class_loss, data_time))
+                logger.info("Iter [%d/%d] Consistency_loss: %f" % (iteration,
+                            cfg.SOLVER.STOP_ITER, cons_loss))
             #Evaluation
             if iteration % 400 == 0:
                 logger.info("Validation mode")
@@ -224,8 +222,6 @@ def train(cfg, logger):
         
             if iteration == stop_iter:
                 break
-            
-        label = not label
 
     return teacher
 
