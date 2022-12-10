@@ -47,14 +47,14 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     model.load_state_dict(saved['model_state_dict'])
     model.to(device)
 
-    max_iter = 80000
-    stop_iter = 80000
+    max_iter = 160000
+    stop_iter = 160000
 
     optimizer = torch.optim.SGD([p for p in model.parameters() if p.requires_grad], 
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    iteration = 40000
+    iteration = 80000
 
     #Load datasets
     lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
