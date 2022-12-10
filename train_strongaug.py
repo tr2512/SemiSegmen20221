@@ -33,25 +33,28 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     device = torch.device(cfg.MODEL.DEVICE)
 
     convert = DSBN(cfg.MODEL.NUM_CLASSES)
+    '''
     if pretrain:
         saved = torch.load(pretrain)
         teacher_model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
         teacher_model.load_state_dict(saved['model_state_dict'])
         teacher_model = convert.convert_dsbn(teacher_model)
         teacher_model.to(device)
-
+    '''
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
     model = convert.convert_dsbn(model)
+    saved = torch.load(pretrain)
+    model.load_state_dict(saved['model_state_dict'])
     model.to(device)
 
-    max_iter = cfg.SOLVER.MAX_ITER
-    stop_iter = cfg.SOLVER.STOP_ITER
+    max_iter = 80000
+    stop_iter = 80000
 
     optimizer = torch.optim.SGD([p for p in model.parameters() if p.requires_grad], 
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    iteration = 0
+    iteration = 40000
 
     #Load datasets
     lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
@@ -194,7 +197,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pytorch training")
-    #parser.add_argument("--pretrain", default="")
+    parser.add_argument("--pretrain", default="")
     parser.add_argument("--output_dir", default="")
     args = parser.parse_args()
     
