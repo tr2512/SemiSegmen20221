@@ -192,5 +192,5 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", default="")
     args = parser.parse_args()
     
-    logger = setup_logger("Fully supervised", args.output_dir , str(datetime.now()) + ".log")
+    logger = setup_logger("Semi supervised", args.output_dir , str(datetime.now()) + ".log")
     model = train(cfg, logger, args.pretrain, args.output_dir)
