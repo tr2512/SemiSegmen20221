@@ -202,4 +202,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     logger = setup_logger("Semi supervised", args.output_dir , str(datetime.now()) + ".log")
-    model = train(cfg, logger, output_dir= args.output_dir)
+    model = train(cfg, logger,args.pretrain, output_dir= args.output_dir)
