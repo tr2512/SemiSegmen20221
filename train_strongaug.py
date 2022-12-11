@@ -33,18 +33,16 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     device = torch.device(cfg.MODEL.DEVICE)
 
     convert = DSBN(cfg.MODEL.NUM_CLASSES)
-    '''
-    if pretrain:
-        saved = torch.load(pretrain)
-        teacher_model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
-        teacher_model.load_state_dict(saved['model_state_dict'])
-        teacher_model = convert.convert_dsbn(teacher_model)
-        teacher_model.to(device)
-    '''
+    
+    
+    saved = torch.load(pretrain)
+    teacher_model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
+    teacher_model = convert.convert_dsbn(teacher_model)
+    teacher_model.load_state_dict(saved['model_state_dict'])
+    teacher_model.to(device)
+    
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
     model = convert.convert_dsbn(model)
-    saved = torch.load(pretrain)
-    model.load_state_dict(saved['model_state_dict'])
     model.to(device)
 
     max_iter = 160000
@@ -54,7 +52,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    iteration = 80000
+    iteration = 0
 
     #Load datasets
     lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
@@ -68,7 +66,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
                             RandomScale(cfg.INPUT.MULTI_SCALES), 
                             RandomCrop(cfg.INPUT.CROP_SIZE), 
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
-    '''
+
     ulbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
                             img_list=ulbl_img_list,
                             transformation=Compose( list(SDA(cfg.INPUT.SDA)) + [ 
@@ -77,11 +75,11 @@ def train(cfg, logger, pretrain = False , output_dir= None):
                             RandomScale(cfg.INPUT.MULTI_SCALES), 
                             RandomCrop(cfg.INPUT.CROP_SIZE), 
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
-    '''
+
     val_data = VOCDataset(cfg.DATASETS.VAL_IMGDIR, cfg.DATASETS.VAL_LBLDIR, transformation=
                          Compose([ToTensor(), Normalization(), RandomCrop(cfg.INPUT.CROP_SIZE)]))
     logger.info("Number of labeled train images: " + str(len(lbl_train_data)))
-    #logger.info("Number of unlabeled train images: " + str(len(ulbl_train_data)))
+    logger.info("Number of unlabeled train images: " + str(len(ulbl_train_data)))
     logger.info("Number of validation images: " + str(len(val_data)))
     
     supervised_loader = torch.utils.data.DataLoader(
@@ -92,7 +90,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
         pin_memory=True,
         drop_last=True
     )
-    '''
+    
     unsupervised_loader = torch.utils.data.DataLoader(
         ulbl_train_data,
         batch_size=cfg.SOLVER.STRONG_AUG,
@@ -101,7 +99,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
         pin_memory=True,
         drop_last=True
     )
-    '''
+    
     val_loader = torch.utils.data.DataLoader(
         val_data,
         batch_size=cfg.SOLVER.STRONG_AUG,
@@ -112,14 +110,14 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     )
 
     criterion = nn.CrossEntropyLoss(ignore_index=255)
-    #u_criterion = nn.CrossEntropyLoss()
+    u_criterion = nn.CrossEntropyLoss()
 
     logger.info("Start training")
     model.train()
     end = time.time()
 
     while iteration < stop_iter:
-        for (images, labels) in supervised_loader:
+        for (images, labels), (u_imgs, _) in zip(supervised_loader, unsupervised_loader):
             model.train()
             data_time = time.time() - end
             end = time.time()
@@ -129,20 +127,20 @@ def train(cfg, logger, pretrain = False , output_dir= None):
             optimizer.zero_grad()
             images = images.to(device)
             labels = labels.to(device)
-            '''
+            
             u_imgs = u_imgs.to(device)
 
             with torch.no_grad():
                 u_labels = teacher_model(u_imgs)
                 u_labels = nn.Softmax(dim=1)(u_labels)
             images = torch.cat((images, u_imgs), dim = 0).to(device)
-            '''
+            
             preds = model(images)
 
-            #preds_s , preds_u = torch.split(preds,cfg.SOLVER.STRONG_AUG , dim=0)
-            loss = criterion(preds, labels)
-            #loss = criterion(preds_s, labels)
-            #loss += u_criterion(preds_u, u_labels)
+            preds_s , preds_u = torch.split(preds,cfg.SOLVER.STRONG_AUG , dim=0)
+            #loss = criterion(preds, labels)
+            loss = criterion(preds_s, labels)
+            loss += u_criterion(preds_u, u_labels)
             loss.backward()
 
             optimizer.step()
@@ -151,7 +149,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
 
             if iteration % 20 == 0:
                 logger.info("Iter [%d/%d] Loss: %f Time/iter: %f" % (iteration, 
-                cfg.SOLVER.STOP_ITER, loss, data_time))
+                stop_iter, loss, data_time))
             if iteration % 1000 == 0:
                 logger.info("Validation mode")
                 model.eval()
