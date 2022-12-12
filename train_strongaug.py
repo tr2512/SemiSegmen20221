@@ -26,7 +26,7 @@ def read_file(directory):
             l.append(line[:-1] + ".jpg")
     return l
 
-def train(cfg, logger, pretrain = False , output_dir= None):
+def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
     best_iou = 0
     logger.info("Begin the training process")
 
@@ -45,8 +45,8 @@ def train(cfg, logger, pretrain = False , output_dir= None):
     model = convert.convert_dsbn(model)
     model.to(device)
 
-    max_iter = 160000
-    stop_iter = 160000
+    max_iter = 80000
+    stop_iter = 80000
 
     optimizer = torch.optim.SGD([p for p in model.parameters() if p.requires_grad], 
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
@@ -187,6 +187,7 @@ def train(cfg, logger, pretrain = False , output_dir= None):
                     best_iou = mean_iou
                     torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
+                            "epoch" : epoch,
                             }, os.path.join(output_dir, "best_model.pkl"))
                 logger.info("Best iou so far: " + str(best_iou))
             if iteration == stop_iter:
@@ -197,6 +198,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pytorch training")
     parser.add_argument("--pretrain", default="")
     parser.add_argument("--output_dir", default="")
+    parser.add_argument("--epoch", default=None)
     args = parser.parse_args()
     
     logger = setup_logger("Semi supervised", args.output_dir , str(datetime.now()) + ".log")
