@@ -3,8 +3,10 @@ from SemiSegmen20221.datasets import *
 from SemiSegmen20221.configs import cfg
 from SemiSegmen20221.utils import setup_logger, IoU, OverallAcc
 
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import argparse
 import random
 import os
@@ -26,9 +28,26 @@ def update_ema_variables(model, ema_model, alpha, global_step):
     alpha = min(1 - 1 / (global_step + 1), alpha)
     for ema_param, param in zip(ema_model.parameters(), model.parameters()):
         ema_param.data.mul_(alpha).add_(1 - alpha, param.data)
+    return alpha
 
-def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir):
-    logger.info("Validation mode")
+def sigmoid_rampup(current, rampup_length):
+    """Exponential rampup from https://arxiv.org/abs/1610.02242"""
+    if rampup_length == 0:
+        return 1.0
+    else:
+        current = np.clip(current, 0.0, rampup_length)
+        phase = 1.0 - current / rampup_length
+        return float(np.exp(-5.0 * phase * phase))
+
+def eval_func(model, device, logger, optimizer, val_loader, iteration, output_dir, teacher=False):
+    global student_best_iou, teacher_best_iou
+    if teacher:
+        model_name = 'teacher'
+        best_iou = teacher_best_iou
+    else:
+        model_name = 'student'
+        best_iou = student_best_iou
+
     model.eval()
     intersections = torch.zeros(21).to(device)
     unions = torch.zeros(21).to(device)
@@ -52,20 +71,25 @@ def eval_func(model, device, logger, optimizer, val_loader, iteration, output_di
     ious = intersections / unions
     mean_iou = torch.mean(ious).item()
     acc = rights / totals
-    results = "\n" + f"{model} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+    results = "\n" + f"{model_name} | Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
     for i, iou in enumerate(ious):
-        results += f"{model} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
+        results += f"{model_name} Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
     results = results[:-2]
     logger.info(results)
-    torch.save({f"{model}_state_dict": model.state_dict(), 
+    torch.save({f"{model_name}_state_dict": model.state_dict(), 
                 "iteration": iteration,
-                }, os.path.join(output_dir, f"current_{model}.pkl"))
+                "best_iou":best_iou
+                }, os.path.join(output_dir, f"current_{model_name}.pkl"))
     if mean_iou > best_iou:
         best_iou = mean_iou
-        torch.save({f"{model}_state_dict": model.state_dict(), 
+        if teacher:
+            teacher_best_iou = mean_iou
+        else:
+            student_best_iou = mean_iou
+        torch.save({f"{model_name}_state_dict": model.state_dict(), 
                 "iteration": iteration,
-                }, os.path.join(output_dir, f"best_{model}.pkl"))
-    logger.info(f"Best {model} iou so far: " + str(best_iou))
+                }, os.path.join(output_dir, f"best_{model_name}.pkl"))
+    logger.info(f"Best {model_name} iou so far: " + str(best_iou))
 
 
 def train(cfg, logger):
@@ -188,7 +212,10 @@ def train(cfg, logger):
             student_preds = student(images)
             teacher_preds = teacher(images)
             
-            cons_loss = consistency_loss(student_preds, teacher_preds)
+
+            cons_loss = consistency_loss(F.log_softmax(student_preds, dim=1), F.log_softmax(teacher_preds, dim=1))
+            cons_weight = sigmoid_rampup(iteration, 40)
+            cons_loss = consistency_loss(student_preds, teacher_preds) * cons_weight
             
             student_preds, _ = torch.split(student_preds, [4, 4])
             teacher_preds, _ = torch.split(teacher_preds, [4, 4])
@@ -203,7 +230,7 @@ def train(cfg, logger):
 
             iteration += 1
 
-            update_ema_variables(student, teacher, alpha, iteration)
+            current_alpha = update_ema_variables(student, teacher, alpha, iteration)
 
             if iteration % 20 == 0:
                 logger.info("Iter [%d/%d] Student_loss: %f Time/iter: %f" % (iteration, 
@@ -212,6 +239,7 @@ def train(cfg, logger):
                             cfg.SOLVER.STOP_ITER, teacher_class_loss, data_time))
                 logger.info("Iter [%d/%d] Consistency_loss: %f" % (iteration,
                             cfg.SOLVER.STOP_ITER, cons_loss))
+                logger.info("Current_alpha: %f" % (current_alpha))
             #Evaluation
             if iteration % 400 == 0:
                 logger.info("Validation mode")
