@@ -1,0 +1,8 @@
+OUTPUT_DIR: "logs/baseline2"
+DATASETS:
+  TRAIN_LIST: "pascal_voc/subset_train_aug/train_aug_labeled_1-8.txt"
+SOLVER:
+  BATCH_SIZE: 4
+  LR: 0.002
+  MAX_ITER: 80000
+  STOP_ITER: 80000
