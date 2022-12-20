@@ -122,7 +122,7 @@ def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
             data_time = time.time() - end
             end = time.time()
 
-            optimizer.param_groups[0]['lr'] = cfg.SOLVER.LR * (1 - iteration/max_iter)**cfg.SOLVER.POWER
+            optimizer.param_groups[0]['lr'] = (cfg.SOLVER.LR/4) * (1 - iteration/max_iter)**cfg.SOLVER.POWER
 
             optimizer.zero_grad()
             images = images.to(device)
