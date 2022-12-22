@@ -75,7 +75,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     ulbl_list = ulbl_list[:max_iter]
     
     lbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
-                            img_list=lbl_img_list,
+                            img_list=lbl_list,
                             transformation=Compose([
                             ToTensor(), 
                             Normalization(), 
@@ -84,7 +84,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
 
     ulbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
-                            img_list=ulbl_img_list,
+                            img_list=ulbl_list,
                             transformation=Compose( list(SDA(cfg.INPUT.SDA)) + [ 
                             ToTensor(), 
                             Normalization(), 
