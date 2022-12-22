@@ -40,6 +40,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     teacher_model = convert.convert_dsbn(teacher_model)
     teacher_model.load_state_dict(saved['model_state_dict'])
     teacher_model.to(device)
+    teacher_model.eval()
     
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
     model = convert.convert_dsbn(model)
@@ -55,12 +56,24 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    iteration = 45000
+    iteration = 0
 
     #Load datasets
     lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
     ulbl_img_list = read_file(cfg.DATASETS.UNLABELLED_LIST)
 
+    lbl_list = []
+    ulbl_list = []
+    while len(lbl_list) < max_iter:
+        lbl_list += lbl_img_list
+        random.shuffle(lbl_img_list)
+    lbl_list = lbl_list[:max_iter]
+    
+    while len(ulbl_list) < max_iter:
+        ulbl_list += ulbl_img_list
+        random.shuffle(ulbl_img_list)
+    ulbl_list = ulbl_list[:max_iter]
+    
     lbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
                             img_list=lbl_img_list,
                             transformation=Compose([
@@ -124,18 +137,18 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
             model.train()
             data_time = time.time() - end
             end = time.time()
-
+            
             optimizer.param_groups[0]['lr'] = (cfg.SOLVER.LR/4) * (1 - iteration/max_iter)**cfg.SOLVER.POWER
-
+        
             optimizer.zero_grad()
             images = images.to(device)
             labels = labels.to(device)
             
             u_imgs = u_imgs.to(device)
-
+            
             with torch.no_grad():
                 u_labels = teacher_model(u_imgs)
-                u_labels = nn.Softmax(dim=1)(u_labels)
+                u_labels = u_labels.argmax(dim=1)
             images = torch.cat((images, u_imgs), dim = 0).to(device)
             
             preds = model(images)
@@ -200,7 +213,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pytorch training")
     parser.add_argument("--pretrain", default="")
-    parser.add_argument("--checkpoint", default="")
+    parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--output_dir", default="")
     parser.add_argument("--epoch", default=None)
     args = parser.parse_args()
