@@ -26,7 +26,7 @@ def read_file(directory):
             l.append(line[:-1] + ".jpg")
     return l
 
-def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
+def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epoch =None):
     best_iou = 0
     logger.info("Begin the training process")
 
@@ -43,6 +43,9 @@ def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
     
     model = DeeplabV3plus(cfg.MODEL.ATROUS, cfg.MODEL.NUM_CLASSES)
     model = convert.convert_dsbn(model)
+    if checkpoint:
+        checkpoint_save = torch.load(checkpoint)
+        model.load_state_dict(checkpoint_save['model_state_dict'])
     model.to(device)
 
     max_iter = 80000
@@ -52,7 +55,7 @@ def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
     lr=cfg.SOLVER.LR, momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
     optimizer.zero_grad()
 
-    iteration = 0
+    iteration = 45000
 
     #Load datasets
     lbl_img_list = read_file(cfg.DATASETS.LABEL_LIST)
@@ -197,9 +200,10 @@ def train(cfg, logger, pretrain = None , output_dir= None, epoch =None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pytorch training")
     parser.add_argument("--pretrain", default="")
+    parser.add_argument("--checkpoint", default="")
     parser.add_argument("--output_dir", default="")
     parser.add_argument("--epoch", default=None)
     args = parser.parse_args()
     
     logger = setup_logger("Semi supervised", args.output_dir , str(datetime.now()) + ".log")
-    model = train(cfg, logger,args.pretrain, output_dir= args.output_dir)
+    model = train(cfg, logger,args.pretrain, args.checkpoint , output_dir= args.output_dir, epoch=args.epoch )
