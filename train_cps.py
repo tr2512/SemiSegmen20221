@@ -58,9 +58,9 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     max_iter = cfg.SOLVER.MAX_ITER
     stop_iter = cfg.SOLVER.STOP_ITER
 
-    optimizer_l = torch.optim.SGD([p for p in model.network1.parameters() if p.requires_grad], lr=0.002, 
+    optimizer_l = torch.optim.SGD([p for p in model.network1.parameters() if p.requires_grad], lr=0.0009375, 
                                     momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
-    optimizer_r = torch.optim.SGD([p for p in model.network2.parameters() if p.requires_grad], lr=0.002, 
+    optimizer_r = torch.optim.SGD([p for p in model.network2.parameters() if p.requires_grad], lr=0.0009375, 
                                     momentum=cfg.SOLVER.MOMENTUM, weight_decay=cfg.SOLVER.WEIGHT_DECAY)
 
 
@@ -146,8 +146,8 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
             data_time = time.time() - end
             end = time.time()
             
-            optimizer_l.param_groups[0]['lr'] = 0.002 * (1 - iteration/max_iter)**0.9
-            optimizer_r.param_groups[0]['lr'] = 0.002 * (1 - iteration/max_iter)**0.9     
+            optimizer_l.param_groups[0]['lr'] = 0.0009375 * (1 - iteration/max_iter)**0.9
+            optimizer_r.param_groups[0]['lr'] = 0.0009375 * (1 - iteration/max_iter)**0.9     
 
             optimizer_l.zero_grad()
             optimizer_r.zero_grad()
@@ -162,8 +162,10 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
 
             max_l = pred_l.argmax(dim=1).long()
             max_r = pred_r.argmax(dim=1).long()
-
-            cps_loss = criterion(pred_l, max_r) + criterion(pred_r, max_l)
+            
+            cps_loss_l = criterion(pred_l, max_r)
+            cps_loss_r = criterion(pred_r, max_l)
+            cps_loss = cps_loss_l + cps_loss_r
             cps_loss *= cps_weight
 
             loss_sup_l = criterion(pred_sup_l, lbls)
@@ -178,8 +180,8 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
             iteration += 1
 
             if iteration % 20 == 0:
-                logger.info("Iter [%d/%d] CE Loss: %f CPS_loss: %f Time/iter: %f" % (iteration, 
-                stop_iter, loss_sup_l + loss_sup_r, cps_loss, data_time))
+                logger.info("Iter [%d/%d] Left CE Loss: %f Right CE Loss: %f Left CPS_loss: %f Right CPS_loss: %f Time/iter: %f" % (iteration, 
+                stop_iter, loss_sup_l, loss_sup_r, cps_loss_l, cps_loss_r, data_time))
             if iteration % 1000 == 0:
                 logger.info("Validation mode")
                 model.eval()
