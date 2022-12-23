@@ -205,7 +205,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
                 ious = intersections / unions
                 mean_iou = torch.mean(ious).item()
                 acc = rights / totals
-                results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+                results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer_l.param_groups[0]['lr']) + "\n"
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
                 results = results[:-2]
