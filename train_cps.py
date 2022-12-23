@@ -14,6 +14,18 @@ from datasets import *
 from models import DeeplabV3plus
 from utils import setup_logger, IoU, OverallAcc
 
+def combine_cfg(config_dir=None):
+    cfg_base = cfg.clone()
+    if config_dir:
+        cfg_base.merge_from_file(config_dir)
+    return cfg_base 
+
+def read_file(directory):
+    l = []
+    with open(directory, "r") as f:
+        for line in f.readlines():
+            l.append(line[:-1] + ".jpg")
+    return l
 
 class Network(nn.Module):
 
