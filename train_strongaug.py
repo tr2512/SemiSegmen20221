@@ -167,8 +167,9 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
             iteration += 1
 
             if iteration % 20 == 0:
+
                 logger.info("Iter [%d/%d] Loss: %f Semi_loss: %f Time/iter: %f" % (iteration, 
-                stop_iter, loss, u_criterion, data_time))
+                stop_iter, loss, u_criterion(preds_u, u_labels), data_time))
             if iteration % 1000 == 0:
                 logger.info("Validation mode")
                 model.eval()
