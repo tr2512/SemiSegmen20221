@@ -48,7 +48,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     if checkpoint:
         checkpoint_save = torch.load(checkpoint)
         model.load_state_dict(checkpoint_save['model_state_dict'])
-        iteration = checkpoint_save['iter']
+        iteration = checkpoint_save['iteration']
     model.to(device)
 
     max_iter = 80000
