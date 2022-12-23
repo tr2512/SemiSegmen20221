@@ -106,7 +106,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     supervised_loader = torch.utils.data.DataLoader(
         lbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -115,7 +115,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     unsupervised_loader = torch.utils.data.DataLoader(
         ulbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -124,7 +124,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     val_loader = torch.utils.data.DataLoader(
         val_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
