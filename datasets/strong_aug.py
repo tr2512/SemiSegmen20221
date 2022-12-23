@@ -16,9 +16,7 @@ class contrast_gamma():
         return cv2.LUT(img.astype("uint8"), table), lbl
         
 class contrast_linear():
-    def __init__(self, alpha = None, beta = 0):
-        if alpha == None:
-            alpha = random.uniform(0.5,2)
+    def __init__(self,alpha = random.uniform(0.5,2), beta = 0):
         self.a = alpha
         self.b = beta
     def __call__(self, img, lbl):
@@ -27,11 +25,13 @@ class contrast_linear():
         out[pixel] = alpha * image[pixel] + beta
         alpha is for contrast, beta is for brightness
         '''
+        
         output = img*self.a + self.b
+        #output = np.rint(output)
         output[output < 0] = 0
         output[output > 255] = 255
 
-        return output, lbl
+        return output.astype("uint8"), lbl
 
 class brightness(contrast_linear):
     def __init__(self, alpha=1, beta=random.uniform(-20,50)):
