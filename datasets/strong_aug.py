@@ -2,8 +2,11 @@ import cv2
 import numpy as np
 import random
 class contrast_gamma():
-    def __init__(self, gamma = 1.0):
-        self.gamma = gamma
+    def __init__(self, gamma = None):
+        if gamma:
+            self.gamma = gamma
+        else:
+            self.gamma = random.uniform(0.5,1.5)
     
     def __call__(self, img, lbl):
         invGamma = 1.0 / self.gamma
@@ -13,7 +16,9 @@ class contrast_gamma():
         return cv2.LUT(img.astype("uint8"), table), lbl
         
 class contrast_linear():
-    def __init__(self, alpha = 3, beta = 0):
+    def __init__(self, alpha = None, beta = 0):
+        if alpha == None:
+            alpha = random.uniform(0.5,2)
         self.a = alpha
         self.b = beta
     def __call__(self, img, lbl):
@@ -29,13 +34,13 @@ class contrast_linear():
         return output, lbl
 
 class brightness(contrast_linear):
-    def __init__(self, alpha=1, beta=20):
+    def __init__(self, alpha=1, beta=random.uniform(-20,50)):
         super().__init__(alpha, beta)
     def __call__(self, img, lbl):
         return super().__call__(img, lbl)
 
 class brightness_channel(contrast_linear):
-    def __init__(self, alpha=1, beta=20):
+    def __init__(self, alpha=1, beta=random.uniform(-20,50)):
         super().__init__(alpha, beta)
     
     def __call__(self, img, lbl):
@@ -142,7 +147,7 @@ class noise_pos():
     '''
     The same with gauss noise, but replace by poisson
     '''
-    def __init__(self, lam = 100, gamma = 0.25, alpha = 0.75):
+    def __init__(self, lam = 10, gamma = 0.25, alpha = 0.75):
         self.lam = lam
         self.gamma = gamma
         self.alpha = alpha
