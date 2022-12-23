@@ -14,6 +14,18 @@ from datasets import *
 from models import DeeplabV3plus
 from utils import setup_logger, IoU, OverallAcc
 
+def combine_cfg(config_dir=None):
+    cfg_base = cfg.clone()
+    if config_dir:
+        cfg_base.merge_from_file(config_dir)
+    return cfg_base 
+
+def read_file(directory):
+    l = []
+    with open(directory, "r") as f:
+        for line in f.readlines():
+            l.append(line[:-1] + ".jpg")
+    return l
 
 class Network(nn.Module):
 
@@ -94,7 +106,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     supervised_loader = torch.utils.data.DataLoader(
         lbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -103,7 +115,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     unsupervised_loader = torch.utils.data.DataLoader(
         ulbl_train_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -112,7 +124,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
     
     val_loader = torch.utils.data.DataLoader(
         val_data,
-        batch_size=cfg.SOLVER.BATCH_SIZE // 2,
+        batch_size=3,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -193,7 +205,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
                 ious = intersections / unions
                 mean_iou = torch.mean(ious).item()
                 acc = rights / totals
-                results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
+                results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer_l.param_groups[0]['lr']) + "\n"
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
                 results = results[:-2]
