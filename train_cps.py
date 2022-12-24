@@ -146,8 +146,8 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
             data_time = time.time() - end
             end = time.time()
             
-            optimizer_l.param_groups[0]['lr'] = 0.003 * (1 - iteration/max_iter)**0.9
-            optimizer_r.param_groups[0]['lr'] = 0.003 * (1 - iteration/max_iter)**0.9     
+            optimizer_l.param_groups[0]['lr'] = 0.0007 * (1 - iteration/max_iter)**0.9
+            optimizer_r.param_groups[0]['lr'] = 0.0007 * (1 - iteration/max_iter)**0.9     
 
             optimizer_l.zero_grad()
             optimizer_r.zero_grad()
@@ -166,6 +166,10 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
             cps_loss_l = criterion(pred_l, max_r)
             cps_loss_r = criterion(pred_r, max_l)
             cps_loss = cps_loss_l + cps_loss_r
+            if iteration < 4000:
+                cps_weight = 0
+            else:
+                cps_weight = 1.5
             cps_loss *= cps_weight
 
             loss_sup_l = criterion(pred_sup_l, lbls)
