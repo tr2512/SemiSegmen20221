@@ -146,8 +146,8 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None):
             data_time = time.time() - end
             end = time.time()
             
-            optimizer_l.param_groups[0]['lr'] = 0.0009375 * (1 - iteration/max_iter)**0.9
-            optimizer_r.param_groups[0]['lr'] = 0.0009375 * (1 - iteration/max_iter)**0.9     
+            optimizer_l.param_groups[0]['lr'] = 0.003 * (1 - iteration/max_iter)**0.9
+            optimizer_r.param_groups[0]['lr'] = 0.003 * (1 - iteration/max_iter)**0.9     
 
             optimizer_l.zero_grad()
             optimizer_r.zero_grad()
