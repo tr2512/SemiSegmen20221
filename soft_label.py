@@ -51,9 +51,9 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
         checkpoint_save = torch.load(checkpoint)
         model.load_state_dict(checkpoint_save['model_state_dict'])
         iteration = checkpoint_save['iteration']
-        wandb.init(project = "deep learning", reinit = True)
+        wandb.init(project = "deep learning",name = "soft_label" reinit = True)
     else:
-        wandb.init(project = "deep learning")
+        wandb.init(project = "deep learning", name = "soft_label")
     model.to(device)
 
     max_iter = 80000
