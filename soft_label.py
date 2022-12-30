@@ -5,6 +5,7 @@ import random
 import os
 import time
 from datetime import datetime
+import wandb
 
 from configs import cfg
 from datasets import *
@@ -29,6 +30,7 @@ def read_file(directory):
 def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epoch =None):
     best_iou = 0
     logger.info("Begin the training process")
+    wandb.login("051cf82cb4b7ccdf04b0d76bf7e1d4f4733e87f7")
 
     device = torch.device(cfg.MODEL.DEVICE)
 
@@ -49,6 +51,9 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
         checkpoint_save = torch.load(checkpoint)
         model.load_state_dict(checkpoint_save['model_state_dict'])
         iteration = checkpoint_save['iteration']
+        wandb.init(project = "deep learning", reinit = True)
+    else:
+        wandb.init(project = "deep learning")
     model.to(device)
 
     max_iter = 80000
@@ -150,7 +155,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
             optimizer.step()
 
             iteration += 1
-
+            wandb.log({"loss":criterion(preds_s, labels), "u_loss": u_criterion(preds_u, u_labels) })
             if iteration % 20 == 0:
                 logger.info("Iter [%d/%d] Loss: %f Semi_loss: %f Time/iter: %f" % (iteration, 
                 stop_iter, loss, u_criterion(preds_u, u_labels), data_time))
@@ -183,6 +188,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
                 results = results[:-2]
+                wandb.log("acc": acc, "iou": ious)
                 logger.info(results)
                 torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
