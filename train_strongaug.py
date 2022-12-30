@@ -4,6 +4,7 @@ import argparse
 import random
 import os
 import time
+import wandb
 from datetime import datetime
 
 from configs import cfg
@@ -29,7 +30,7 @@ def read_file(directory):
 def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epoch =None):
     best_iou = 0
     logger.info("Begin the training process")
-
+    wandb.login(key="051cf82cb4b7ccdf04b0d76bf7e1d4f4733e87f7")
     device = torch.device(cfg.MODEL.DEVICE)
 
     convert = DSBN(cfg.MODEL.NUM_CLASSES)
@@ -49,7 +50,10 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     if checkpoint:
         checkpoint_save = torch.load(checkpoint)
         model.load_state_dict(checkpoint_save['model_state_dict'])
-        iteration = checkpoint_save["iteration"]
+        iteration = checkpoint_save['iteration']
+        wandb.init(project = "deep learning", reinit = True)
+    else:
+        wandb.init(project = "deep learning")
     model.to(device)
 
     max_iter = 80000
@@ -165,7 +169,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
             optimizer.step()
 
             iteration += 1
-
+            wlog = {"loss":criterion(preds_s, labels), "u_loss": u_criterion(preds_u, u_labels) }
             if iteration % 20 == 0:
 
                 logger.info("Iter [%d/%d] Loss: %f Semi_loss: %f Time/iter: %f" % (iteration, 
@@ -198,6 +202,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                 results = "\n" + "Overall acc: " + str(acc) + " Mean IoU: " + str(mean_iou) + "Learning rate: " + str(optimizer.param_groups[0]['lr']) + "\n"
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
+                wlog.update({"iou": mean_iou})
                 results = results[:-2]
                 logger.info(results)
                 torch.save({"model_state_dict": model.state_dict(), 
@@ -210,6 +215,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                             "epoch" : epoch,
                             }, os.path.join(output_dir, "best_model.pkl"))
                 logger.info("Best iou so far: " + str(best_iou))
+            wandb.log(wlog)
             if iteration == stop_iter:
                 break
     return model 

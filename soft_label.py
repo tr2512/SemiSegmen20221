@@ -188,7 +188,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
                 results = results[:-2]
-                wlog.update({"acc": acc, "iou": ious})
+                wlog.update({"iou": mean_iou})
                 logger.info(results)
                 torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
