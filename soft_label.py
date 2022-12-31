@@ -186,7 +186,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                 for i, iou in enumerate(ious):
                     results += "Class " + str(i) + " IoU: " + str(iou.item()) + "\n"
                 results = results[:-2]
-                wlog.update({"iou": mean_iou, "overall_acc": acc})
+                wlog.update({"iou": float(str(mean_iou)), "overall_acc": acc, "lr": float(str(optimizer.param_groups[0]['lr']))})
                 logger.info(results)
                 torch.save({"model_state_dict": model.state_dict(), 
                             "iteration": iteration,
