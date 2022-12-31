@@ -31,7 +31,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
     best_iou = 0
     logger.info("Begin the training process")
     wandb.login(key="051cf82cb4b7ccdf04b0d76bf7e1d4f4733e87f7")
-
+    wandb.init(project = "deep learning",name = "soft_label", resume = True)
     device = torch.device(cfg.MODEL.DEVICE)
 
     convert = DSBN(cfg.MODEL.NUM_CLASSES)
@@ -51,9 +51,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
         checkpoint_save = torch.load(checkpoint)
         model.load_state_dict(checkpoint_save['model_state_dict'])
         iteration = checkpoint_save['iteration']
-        wandb.init(project = "deep learning",name = "soft_label", resume = True)
-    else:
-        wandb.init(project = "deep learning", name = "soft_label")
+
     model.to(device)
 
     max_iter = 80000
