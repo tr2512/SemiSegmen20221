@@ -86,7 +86,7 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                             ToTensor(), 
                             Normalization(), 
                             RandomScale(cfg.INPUT.MULTI_SCALES), 
-                            RandomCrop(cfg.INPUT.CROP_SIZE), 
+                            RandomCrop((320,320)), 
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
 
     ulbl_train_data = VOCDataset(cfg.DATASETS.TRAIN_IMGDIR, cfg.DATASETS.TRAIN_LBLDIR,
@@ -95,11 +95,11 @@ def train(cfg, logger, pretrain = None ,checkpoint = None, output_dir= None, epo
                             ToTensor(), 
                             Normalization(), 
                             RandomScale(cfg.INPUT.MULTI_SCALES), 
-                            RandomCrop(cfg.INPUT.CROP_SIZE), 
+                            RandomCrop((320,320)), 
                             RandomFlip(cfg.INPUT.FLIP_PROB)]))
 
     val_data = VOCDataset(cfg.DATASETS.VAL_IMGDIR, cfg.DATASETS.VAL_LBLDIR, transformation=
-                         Compose([ToTensor(), Normalization(), RandomCrop(cfg.INPUT.CROP_SIZE)]))
+                         Compose([ToTensor(), Normalization(), RandomCrop((320,320))]))
     logger.info("Number of labeled train images: " + str(len(lbl_train_data)))
     logger.info("Number of unlabeled train images: " + str(len(ulbl_train_data)))
     logger.info("Number of validation images: " + str(len(val_data)))
